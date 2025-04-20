@@ -1,7 +1,10 @@
 # syntax=docker/dockerfile:1
 FROM golang as base
 WORKDIR /go/src/supabase
-RUN git clone https://github.com/AppFlowy-IO/auth.git --depth 1 --branch 0.1.0
+RUN pwd
+RUN pwd
+RUN git clone https://github.com/pimpale/appflowy-auth-patch.git --depth 1 --branch magic_link_patch
+RUN mv appflowy-auth-patch auth
 WORKDIR /go/src/supabase/auth
 RUN CGO_ENABLED=0 go build -o /auth .
 

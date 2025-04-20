@@ -21,7 +21,7 @@ ARG PROFILE="release"
 
 COPY --from=planner /app/recipe.json recipe.json
 # Build our project dependencies
-ENV CARGO_BUILD_JOBS=4
+ENV CARGO_BUILD_JOBS=16
 RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY . .
@@ -31,15 +31,32 @@ ENV SQLX_OFFLINE true
 RUN echo "Building with profile: ${PROFILE}, features: ${FEATURES}, "
 RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_cloud
 
-FROM debian:bookworm-slim AS runtime
-WORKDIR /app
+FROM ubuntu:24.04 AS runtime
+
+# Update and install dependencies
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl ca-certificates curl \
-  && update-ca-certificates \
-  # Clean up
-  && apt-get autoremove -y \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/*
+  && update-ca-certificates
+
+# Install supervisor, novnc, x11vnc, xvfb, fluxbox, git, net-tools, xterm
+RUN apt-get install -y \
+  bash \
+  fluxbox \
+  git \
+  net-tools \
+  novnc \
+  supervisor \
+  x11vnc \
+  xterm \
+  xvfb \
+  firefox
+  
+# install redis
+RUN apt-get install -y redis-server
+
+
+WORKDIR /app
+
 
 COPY --from=builder /app/target/release/appflowy_cloud /usr/local/bin/appflowy_cloud
 ENV APP_ENVIRONMENT production
@@ -50,4 +67,19 @@ ARG PORT
 ENV PORT=${APPFLOWY_APPLICATION_PORT:-${PORT:-8000}}
 EXPOSE $PORT
 
-CMD ["appflowy_cloud"]
+ENV HOME=/root \
+    DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    DISPLAY=:0.0 \
+    DISPLAY_WIDTH=1024 \
+    DISPLAY_HEIGHT=768
+
+EXPOSE 8080
+
+
+# Setup and start supervisor
+COPY supervisord_conf.d/ /etc/supervisord_conf.d/
+COPY supervisord.conf /etc/supervisord.conf
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
