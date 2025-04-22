@@ -6,7 +6,17 @@ WORKDIR /app
 RUN apt update && apt install lld clang -y
 
 FROM chef as planner
-COPY . .
+# the reason we have so many COPY commands is because we don't want to copy the whole repo
+# as this would force a rebuild of all the dependencies even if we only change a single file
+COPY admin_frontend admin_frontend
+COPY services services
+COPY script script
+COPY src src
+COPY libs libs
+COPY assets assets
+COPY xtask xtask
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 # Compute a lock-like file for our project
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -35,7 +45,7 @@ FROM ubuntu:24.04 AS runtime
 
 # Update and install dependencies
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends openssl ca-certificates curl \
+  && apt-get install -y --no-install-recommends openssl ca-certificates curl wget software-properties-common \
   && update-ca-certificates
 
 # Install supervisor, novnc, x11vnc, xvfb, fluxbox, git, net-tools, xterm
@@ -48,11 +58,19 @@ RUN apt-get install -y \
   supervisor \
   x11vnc \
   xterm \
-  xvfb \
-  firefox
+  xvfb
+
+# install google chrome
+RUN add-apt-repository ppa:xtradeb/apps
+RUN apt update
+RUN apt install chromium -y
   
 # install redis
 RUN apt-get install -y redis-server
+EXPOSE 6379
+
+# install postgres and configure it
+
 
 
 WORKDIR /app
