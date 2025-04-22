@@ -41,15 +41,21 @@ ENV SQLX_OFFLINE true
 RUN echo "Building with profile: ${PROFILE}, features: ${FEATURES}, "
 RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_cloud
 
+
+
 FROM ubuntu:24.04 AS runtime
 
 # Update and install dependencies
-RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends openssl ca-certificates curl wget software-properties-common \
-  && update-ca-certificates
+RUN add-apt-repository ppa:xtradeb/apps
 
-# Install supervisor, novnc, x11vnc, xvfb, fluxbox, git, net-tools, xterm
-RUN apt-get install -y \
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \ 
+  openssl \
+  ca-certificates \
+  curl \
+  wget \
+  software-properties-common \
+  sudo \
   bash \
   fluxbox \
   git \
@@ -58,19 +64,24 @@ RUN apt-get install -y \
   supervisor \
   x11vnc \
   xterm \
-  xvfb
+  xvfb \
+  make \
+  redis-server \
+  postgresql-16-pgvector \
+  g++ \
+  m4 \
+  chromium
 
-# install google chrome
-RUN add-apt-repository ppa:xtradeb/apps
-RUN apt update
-RUN apt install chromium -y
+RUN update-ca-certificates
+
+# install dinit
+RUN git clone https://github.com/davmac314/dinit && \
+    cd dinit && make && make install
   
 # install redis
-RUN apt-get install -y redis-server
 EXPOSE 6379
-
-# install postgres and configure it
-
+# install postgres
+EXPOSE 5432
 
 
 WORKDIR /app
@@ -97,7 +108,6 @@ ENV HOME=/root \
 EXPOSE 8080
 
 
-# Setup and start supervisor
-COPY supervisord_conf.d/ /etc/supervisord_conf.d/
-COPY supervisord.conf /etc/supervisord.conf
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+# Setup and start dinit
+COPY dinit.d/ /etc/dinit.d/
+CMD ["dinit", "--container"]

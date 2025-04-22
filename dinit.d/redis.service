@@ -1,0 +1,7 @@
+[service]
+type = process
+command = redis-server --bind 0.0.0.0 --protected-mode no
+logfile = /var/log/dinit/redis.log
+start-on-boot = true
+smooth-recovery = true
+restart = true 
