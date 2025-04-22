@@ -120,4 +120,5 @@ EXPOSE 8080
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
+RUN mkdir -p /var/log/dinit
 CMD ["dinit", "--container", "-d", "/etc/dinit.d/"]

@@ -1,10 +1,5 @@
-[service]
 type = process
-command = /usr/local/bin/websockify --web=/usr/share/novnc 6080 localhost:5900
+command=/usr/bin/websockify --web /usr/share/novnc 8080 localhost:5900
 logfile = /var/log/dinit/websockify.log
-start-on-boot = true
 smooth-recovery = true
 restart = true
-# Waits for the VNC server target
-waits-for = x11vnc
-depends-on = x11vnc 

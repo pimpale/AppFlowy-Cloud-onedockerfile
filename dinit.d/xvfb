@@ -1,7 +1,5 @@
-[service]
 type = process
 command = Xvfb :0 -screen 0 1280x800x24 -fbdir /var/tmp
 logfile = /var/log/dinit/xvfb.log
-start-on-boot = true
 smooth-recovery = true
 restart = true

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Switch to the postgres user to run SQL commands
-sudo -u postgres psql <<EOF
+# Must be run as postgres user to run SQL commands
+psql <<EOF
 -- Create user
 DO \$\$
 BEGIN

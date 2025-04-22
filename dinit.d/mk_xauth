@@ -1,6 +1,5 @@
-[service]
-type = script
-command = /bin/bash -c "touch /root/.Xauthority && xauth add $DISPLAY /root $(mcookie)"
+type = scripted
+command = /bin/bash -c "touch /root/.Xauthority && xauth add $DISPLAY /root `mcookie`"
 logfile = /var/log/dinit/mk_xauth.log
 # This service likely needs the DISPLAY environment variable set.
 # Consider setting it via 'env = DISPLAY=:0' or an environment-file. 

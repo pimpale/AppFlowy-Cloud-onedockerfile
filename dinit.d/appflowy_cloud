@@ -1,4 +1,3 @@
-[service]
 type = process
 command = /app/appflowy-cloud
 logfile = /var/log/dinit/appflowy_cloud.log
