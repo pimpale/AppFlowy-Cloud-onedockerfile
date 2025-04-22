@@ -92,7 +92,10 @@ RUN git clone https://github.com/davmac314/dinit && \
 EXPOSE 6379
 # install postgres
 EXPOSE 5432
-
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=password
+ENV POSTGRES_DB=postgres
+COPY pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
 
 WORKDIR /app
 
@@ -116,6 +119,7 @@ ENV HOME=/root \
     DISPLAY_HEIGHT=768
 
 EXPOSE 8080
+
 
 
 # Setup and start dinit

@@ -1,8 +1,8 @@
 type = process
-command = /app/appflowy-cloud
+command = /usr/local/bin/appflowy_cloud
 logfile = /var/log/dinit/appflowy_cloud.log
 smooth-recovery = true
 
 # Waits for the postgres init script to complete
-depends-on = postgres-init
+depends-on = setup_postgres_env
 depends-on = redis

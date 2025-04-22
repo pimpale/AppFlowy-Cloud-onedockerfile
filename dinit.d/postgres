@@ -1,5 +1,5 @@
 type = process
 command=/bin/sudo -u postgres /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/16/main -c config_file=/etc/postgresql/16/main/postgresql.conf
-logfile = /var/log/dinit/websockify.log
+logfile = /var/log/dinit/postgres.log
 smooth-recovery = true
 restart = true
