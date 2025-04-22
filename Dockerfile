@@ -31,10 +31,20 @@ ARG PROFILE="release"
 
 COPY --from=planner /app/recipe.json recipe.json
 # Build our project dependencies
-ENV CARGO_BUILD_JOBS=16
+ENV CARGO_BUILD_JOBS=32
 RUN cargo chef cook --release --recipe-path recipe.json
 
-COPY . .
+COPY admin_frontend admin_frontend
+COPY services services
+COPY script script
+COPY src src
+COPY libs libs
+COPY assets assets
+COPY xtask xtask
+COPY .sqlx .sqlx
+COPY migrations migrations
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 ENV SQLX_OFFLINE true
 
 # Build the project
@@ -46,8 +56,6 @@ RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_clo
 FROM ubuntu:24.04 AS runtime
 
 # Update and install dependencies
-RUN add-apt-repository ppa:xtradeb/apps
-
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
   openssl \
@@ -69,10 +77,12 @@ RUN apt-get update -y \
   redis-server \
   postgresql-16-pgvector \
   g++ \
-  m4 \
-  chromium
-
+  m4 
 RUN update-ca-certificates
+
+RUN add-apt-repository ppa:xtradeb/apps
+RUN apt-get install -y chromium
+
 
 # install dinit
 RUN git clone https://github.com/davmac314/dinit && \
@@ -110,4 +120,4 @@ EXPOSE 8080
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
-CMD ["dinit", "--container"]
+CMD ["dinit", "--container", "-d", "/etc/dinit.d/"]
