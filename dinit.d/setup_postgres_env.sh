@@ -1,35 +1,19 @@
 #!/bin/bash
-set -e
+set -euxo pipefail
 
 echo "Attempting to set up postgres env for ${POSTGRES_USER} on ${POSTGRES_DB}"
-# Must be run as postgres user to run SQL commands
-# psql <<EOF
-# -- Create user
-# DO \$\$
-# BEGIN
-#    IF NOT EXISTS (
-#       SELECT
-#       FROM   pg_catalog.pg_user
-#       WHERE  usename = '${POSTGRES_USER}') THEN
+until pg_isready; do
+    echo "Waiting for postgres to be ready"
+    sleep 1
+done
+echo "Postgres is ready"
+echo "Running scripts in /docker-entrypoint-initdb.d"
+# run all scripts in /docker-entrypoint-initdb.d (they are bash scripts)
+for script in /docker-entrypoint-initdb.d/*.sh; do
+    echo "Running script ${script}"
+    bash ${script}
+done
 
-#       CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';
-#    END IF;
-# END
-# \$\$;
-
-# -- Create database
-# DO \$\$
-# BEGIN
-#    IF NOT EXISTS (
-#       SELECT
-#       FROM   pg_database
-#       WHERE  datname = '${POSTGRES_DB}') THEN
-
-#       CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};
-#    END IF;
-# END
-# \$\$;
-# EOF
 
 echo "Setup postgres env, sleeping forever"
 

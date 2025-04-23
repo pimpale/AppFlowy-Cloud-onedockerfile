@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-set -e
+set -euxo pipefail
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     -- Create the anon and authenticated roles if they don't exist
