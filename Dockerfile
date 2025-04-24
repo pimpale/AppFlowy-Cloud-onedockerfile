@@ -53,9 +53,9 @@ RUN echo "Building Admin Frontend"
 WORKDIR /app/admin_frontend
 RUN cargo build --bin admin_frontend
 
-FROM golang as gotrue_base
+FROM golang as gotrue_builder
 WORKDIR /go/src/supabase
-RUN git clone https://github.com/pimpale/appflowy-auth-patch.git --depth 1 --branch magic_link_patch
+RUN git clone https://github.com/pimpale/appflowy-auth-patch.git --branch magic_link_patch
 RUN mv appflowy-auth-patch auth
 WORKDIR /go/src/supabase/auth
 RUN CGO_ENABLED=0 go build -o /auth .
@@ -117,8 +117,8 @@ EXPOSE 9001
 # install gotrue
 RUN adduser supabase
 USER supabase
-COPY --from=gotrue_base /auth /usr/local/bin/auth
-COPY --from=gotrue_base /go/src/supabase/auth/migrations /usr/local/etc/auth/migrations
+COPY --from=gotrue_builder /auth /usr/local/bin/auth
+COPY --from=gotrue_builder /go/src/supabase/auth/migrations /usr/local/etc/auth/migrations
 ENV GOTRUE_DB_MIGRATIONS_PATH /usr/local/etc/auth/migrations
 USER root
 EXPOSE 9999

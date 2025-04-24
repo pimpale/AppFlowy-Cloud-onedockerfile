@@ -1,0 +1,7 @@
+type = process
+command = /usr/local/bin/admin_frontend
+logfile = /var/log/dinit/admin_frontend.log
+smooth-recovery = true
+
+# Waits for the postgres init script to complete
+depends-on = appflowy_cloud
