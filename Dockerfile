@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 # Using cargo-chef to manage Rust build cache effectively
-FROM lukemathwalker/cargo-chef:latest-rust-1.81 as chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.81 as shared_chef
 
 WORKDIR /app
-RUN apt update && apt install lld clang -y
+RUN apt update && apt install lld clang protobuf-compiler  -y
 
-FROM chef as planner
+FROM shared_chef as shared_planner
 # the reason we have so many COPY commands is because we don't want to copy the whole repo
 # as this would force a rebuild of all the dependencies even if we only change a single file
 COPY admin_frontend admin_frontend
@@ -20,16 +20,13 @@ COPY Cargo.lock Cargo.lock
 # Compute a lock-like file for our project
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef as builder
-
-# Update package lists and install protobuf-compiler along with other build dependencies
-RUN apt update && apt install -y protobuf-compiler lld clang
+FROM shared_chef as shared_builder
 
 # Specify a default value for FEATURES; it could be an empty string if no features are enabled by default
 ARG FEATURES=""
 ARG PROFILE="release"
 
-COPY --from=planner /app/recipe.json recipe.json
+COPY --from=shared_planner /app/recipe.json recipe.json
 # Build our project dependencies
 ENV CARGO_BUILD_JOBS=32
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -48,10 +45,12 @@ COPY Cargo.lock Cargo.lock
 ENV SQLX_OFFLINE true
 
 # Build the project
-RUN echo "Building with profile: ${PROFILE}, features: ${FEATURES}, "
+RUN echo "Building Cloud with profile: ${PROFILE}, features: ${FEATURES}, "
 RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_cloud
 
-
+RUN echo "Building Worker"
+WORKDIR /app/services/appflowy-worker
+RUN cargo build --release --bin appflowy_worker
 
 FROM golang as gotrue_base
 WORKDIR /go/src/supabase
@@ -119,11 +118,15 @@ ENV GOTRUE_DB_MIGRATIONS_PATH /usr/local/etc/auth/migrations
 USER root
 EXPOSE 9999
 
-COPY --from=builder /app/target/release/appflowy_cloud /usr/local/bin/appflowy_cloud
+# install cloud
+COPY --from=shared_builder /app/target/release/appflowy_cloud /usr/local/bin/appflowy_cloud
 ENV APP_ENVIRONMENT production
 ENV RUST_BACKTRACE 1
-
 EXPOSE 8000
+
+# install worker
+COPY --from=shared_builder /app/target/release/appflowy_worker /usr/local/bin/appflowy_worker
+
 
 ENV HOME=/root \
     DEBIAN_FRONTEND=noninteractive \

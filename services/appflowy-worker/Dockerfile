@@ -1,22 +1,22 @@
 # syntax=docker/dockerfile:1
-FROM lukemathwalker/cargo-chef:latest-rust-1.81 as chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.81 as worker_chef
 
 # Set the initial working directory
 WORKDIR /app
 RUN apt update && apt install lld clang -y
 
-FROM chef as planner
+FROM worker_chef as worker_planner
 COPY . .
 
 # Compute a lock-like file for our project
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef as builder
+FROM worker_chef as worker_builder
 
 # Update package lists and install protobuf-compiler along with other build dependencies
 RUN apt update && apt install -y protobuf-compiler lld clang
 
-COPY --from=planner /app/recipe.json recipe.json
+COPY --from=worker_planner /app/recipe.json recipe.json
 # Build our project dependencies
 RUN cargo chef cook --release --recipe-path recipe.json
 
@@ -36,7 +36,7 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/
-COPY --from=builder /app/target/release/appflowy_worker /usr/local/bin/appflowy_worker
+COPY --from=worker_builder /app/target/release/appflowy_worker /usr/local/bin/appflowy_worker
 ENV APP_ENVIRONMENT production
 ENV RUST_BACKTRACE  1
 CMD ["appflowy_worker"]

@@ -112,6 +112,9 @@ services:
   appflowy_cloud:
     restart: on-failure
     environment:
+      ###########################
+      # Cloud config
+      ########################### 
       - RUST_LOG=${RUST_LOG:-info}
       - APPFLOWY_ENVIRONMENT=production
       - APPFLOWY_DATABASE_URL=${APPFLOWY_DATABASE_URL}
@@ -145,6 +148,9 @@ services:
       - APPFLOWY_WEB_URL=${APPFLOWY_WEB_URL}
       - ENV_DISPLAY_WIDTH=${ENV_DISPLAY_WIDTH}
       - ENV_DISPLAY_HEIGHT=${ENV_DISPLAY_HEIGHT}
+      ###########################
+      # Gotrue config
+      ###########################
       - SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
       # There are a lot of options to configure GoTrue. You can reference the example config:
       # https://github.com/supabase/auth/blob/master/example.env
@@ -192,7 +198,26 @@ services:
       # SAML 2.0 OAuth config
       - GOTRUE_SAML_ENABLED=${GOTRUE_SAML_ENABLED}
       - GOTRUE_SAML_PRIVATE_KEY=${GOTRUE_SAML_PRIVATE_KEY}
-
+      ###########################
+      # Worker config
+      ###########################
+      - APPFLOWY_WORKER_REDIS_URL=${APPFLOWY_WORKER_REDIS_URL}
+      - APPFLOWY_WORKER_ENVIRONMENT=production
+      - APPFLOWY_WORKER_DATABASE_URL=${APPFLOWY_WORKER_DATABASE_URL}
+      - APPFLOWY_WORKER_DATABASE_NAME=${APPFLOWY_WORKER_DATABASE_NAME}
+      - APPFLOWY_WORKER_IMPORT_TICK_INTERVAL=30
+      - APPFLOWY_S3_USE_MINIO=${APPFLOWY_S3_USE_MINIO}
+      - APPFLOWY_S3_MINIO_URL=${APPFLOWY_S3_MINIO_URL}
+      - APPFLOWY_S3_ACCESS_KEY=${APPFLOWY_S3_ACCESS_KEY}
+      - APPFLOWY_S3_SECRET_KEY=${APPFLOWY_S3_SECRET_KEY}
+      - APPFLOWY_S3_BUCKET=${APPFLOWY_S3_BUCKET}
+      - APPFLOWY_S3_REGION=${APPFLOWY_S3_REGION}
+      - APPFLOWY_MAILER_SMTP_HOST=${APPFLOWY_MAILER_SMTP_HOST}
+      - APPFLOWY_MAILER_SMTP_PORT=${APPFLOWY_MAILER_SMTP_PORT}
+      - APPFLOWY_MAILER_SMTP_USERNAME=${APPFLOWY_MAILER_SMTP_USERNAME}
+      - APPFLOWY_MAILER_SMTP_EMAIL=${APPFLOWY_MAILER_SMTP_EMAIL}
+      - APPFLOWY_MAILER_SMTP_PASSWORD=${APPFLOWY_MAILER_SMTP_PASSWORD}
+      - APPFLOWY_MAILER_SMTP_TLS_KIND=${APPFLOWY_MAILER_SMTP_TLS_KIND}
     build:
       context: .
       dockerfile: Dockerfile
@@ -238,37 +263,37 @@ services:
   #     postgres:
   #       condition: service_healthy
 
-  appflowy_worker:
-    restart: on-failure
-    image: appflowyinc/appflowy_worker:${APPFLOWY_WORKER_VERSION:-latest}
-    build:
-      context: .
-      dockerfile: ./services/appflowy-worker/Dockerfile
-    environment:
-      - RUST_LOG=${RUST_LOG:-info}
-      - APPFLOWY_ENVIRONMENT=production
-      - APPFLOWY_WORKER_REDIS_URL=${APPFLOWY_WORKER_REDIS_URL}
-      - APPFLOWY_WORKER_ENVIRONMENT=production
-      - APPFLOWY_WORKER_DATABASE_URL=${APPFLOWY_WORKER_DATABASE_URL}
-      - APPFLOWY_WORKER_DATABASE_NAME=${APPFLOWY_WORKER_DATABASE_NAME}
-      - APPFLOWY_WORKER_IMPORT_TICK_INTERVAL=30
-      - APPFLOWY_S3_USE_MINIO=${APPFLOWY_S3_USE_MINIO}
-      - APPFLOWY_S3_MINIO_URL=${APPFLOWY_S3_MINIO_URL}
-      - APPFLOWY_S3_ACCESS_KEY=${APPFLOWY_S3_ACCESS_KEY}
-      - APPFLOWY_S3_SECRET_KEY=${APPFLOWY_S3_SECRET_KEY}
-      - APPFLOWY_S3_BUCKET=${APPFLOWY_S3_BUCKET}
-      - APPFLOWY_S3_REGION=${APPFLOWY_S3_REGION}
-      - APPFLOWY_MAILER_SMTP_HOST=${APPFLOWY_MAILER_SMTP_HOST}
-      - APPFLOWY_MAILER_SMTP_PORT=${APPFLOWY_MAILER_SMTP_PORT}
-      - APPFLOWY_MAILER_SMTP_USERNAME=${APPFLOWY_MAILER_SMTP_USERNAME}
-      - APPFLOWY_MAILER_SMTP_EMAIL=${APPFLOWY_MAILER_SMTP_EMAIL}
-      - APPFLOWY_MAILER_SMTP_PASSWORD=${APPFLOWY_MAILER_SMTP_PASSWORD}
-      - APPFLOWY_MAILER_SMTP_TLS_KIND=${APPFLOWY_MAILER_SMTP_TLS_KIND}
-    depends_on:
-      appflowy_cloud:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+  # appflowy_worker:
+  #   restart: on-failure
+  #   image: appflowyinc/appflowy_worker:${APPFLOWY_WORKER_VERSION:-latest}
+  #   build:
+  #     context: .
+  #     dockerfile: ./services/appflowy-worker/Dockerfile
+  #   environment:
+  #     - RUST_LOG=${RUST_LOG:-info}
+  #     - APPFLOWY_ENVIRONMENT=production
+  #     - APPFLOWY_WORKER_REDIS_URL=${APPFLOWY_WORKER_REDIS_URL}
+  #     - APPFLOWY_WORKER_ENVIRONMENT=production
+  #     - APPFLOWY_WORKER_DATABASE_URL=${APPFLOWY_WORKER_DATABASE_URL}
+  #     - APPFLOWY_WORKER_DATABASE_NAME=${APPFLOWY_WORKER_DATABASE_NAME}
+  #     - APPFLOWY_WORKER_IMPORT_TICK_INTERVAL=30
+  #     - APPFLOWY_S3_USE_MINIO=${APPFLOWY_S3_USE_MINIO}
+  #     - APPFLOWY_S3_MINIO_URL=${APPFLOWY_S3_MINIO_URL}
+  #     - APPFLOWY_S3_ACCESS_KEY=${APPFLOWY_S3_ACCESS_KEY}
+  #     - APPFLOWY_S3_SECRET_KEY=${APPFLOWY_S3_SECRET_KEY}
+  #     - APPFLOWY_S3_BUCKET=${APPFLOWY_S3_BUCKET}
+  #     - APPFLOWY_S3_REGION=${APPFLOWY_S3_REGION}
+  #     - APPFLOWY_MAILER_SMTP_HOST=${APPFLOWY_MAILER_SMTP_HOST}
+  #     - APPFLOWY_MAILER_SMTP_PORT=${APPFLOWY_MAILER_SMTP_PORT}
+  #     - APPFLOWY_MAILER_SMTP_USERNAME=${APPFLOWY_MAILER_SMTP_USERNAME}
+  #     - APPFLOWY_MAILER_SMTP_EMAIL=${APPFLOWY_MAILER_SMTP_EMAIL}
+  #     - APPFLOWY_MAILER_SMTP_PASSWORD=${APPFLOWY_MAILER_SMTP_PASSWORD}
+  #     - APPFLOWY_MAILER_SMTP_TLS_KIND=${APPFLOWY_MAILER_SMTP_TLS_KIND}
+  #   depends_on:
+  #     appflowy_cloud:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
 
   appflowy_web:
     restart: on-failure
