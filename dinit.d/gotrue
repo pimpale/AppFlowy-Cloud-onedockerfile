@@ -1,0 +1,6 @@
+type = process
+command=/usr/bin/sudo -E -u supabase /etc/dinit.d/gotrue.sh
+logfile = /var/log/dinit/gotrue.log
+smooth-recovery = true
+restart = true
+depends-on = setup_postgres_env

@@ -53,6 +53,15 @@ RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_clo
 
 
 
+FROM golang as gotrue_base
+WORKDIR /go/src/supabase
+RUN pwd
+RUN pwd
+RUN git clone https://github.com/pimpale/appflowy-auth-patch.git --depth 1 --branch magic_link_patch
+RUN mv appflowy-auth-patch auth
+WORKDIR /go/src/supabase/auth
+RUN CGO_ENABLED=0 go build -o /auth .
+
 FROM ubuntu:24.04 AS runtime
 
 # Update and install dependencies
@@ -101,14 +110,20 @@ COPY migrations/before /docker-entrypoint-initdb.d
 WORKDIR /app
 
 
+# install gotrue
+RUN adduser supabase
+USER supabase
+COPY --from=gotrue_base /auth /usr/local/bin/auth
+COPY --from=gotrue_base /go/src/supabase/auth/migrations /usr/local/etc/auth/migrations
+ENV GOTRUE_DB_MIGRATIONS_PATH /usr/local/etc/auth/migrations
+USER root
+EXPOSE 9999
+
 COPY --from=builder /app/target/release/appflowy_cloud /usr/local/bin/appflowy_cloud
 ENV APP_ENVIRONMENT production
 ENV RUST_BACKTRACE 1
 
-ARG APPFLOWY_APPLICATION_PORT
-ARG PORT
-ENV PORT=${APPFLOWY_APPLICATION_PORT:-${PORT:-8000}}
-EXPOSE $PORT
+EXPOSE 8000
 
 ENV HOME=/root \
     DEBIAN_FRONTEND=noninteractive \

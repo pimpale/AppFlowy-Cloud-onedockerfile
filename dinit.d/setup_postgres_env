@@ -1,4 +1,4 @@
-type = process
+type = scripted
 # Runs the postgres initialization script.
 # Requires: bash, sudo, psql, postgres user on the system.
 # Requires env vars: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB

@@ -11,10 +11,5 @@ echo "Running scripts in /docker-entrypoint-initdb.d"
 # run all scripts in /docker-entrypoint-initdb.d (they are bash scripts)
 for script in /docker-entrypoint-initdb.d/*.sh; do
     echo "Running script ${script}"
-    bash ${script}
+    source ${script}
 done
-
-
-echo "Setup postgres env, sleeping forever"
-
-sleep infinity

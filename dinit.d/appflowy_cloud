@@ -1,8 +1,9 @@
 type = process
-command = /usr/local/bin/appflowy_cloud
+command = /usr/bin/bash -c "export PORT=8000 && sleep 5 && /usr/local/bin/appflowy_cloud"
 logfile = /var/log/dinit/appflowy_cloud.log
 smooth-recovery = true
 
 # Waits for the postgres init script to complete
 depends-on = setup_postgres_env
 depends-on = redis
+depends-on = gotrue

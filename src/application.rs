@@ -87,6 +87,7 @@ impl Application {
     rt_cmd_recv: CLCommandReceiver,
   ) -> Result<Self, Error> {
     let address = format!("{}:{}", config.application.host, config.application.port);
+    info!("Server starting at {}", address);
     let listener = TcpListener::bind(&address)?;
     let port = listener.local_addr().unwrap().port();
     info!("Server started at {}", listener.local_addr().unwrap());
