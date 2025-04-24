@@ -12,35 +12,35 @@ services:
       - ./nginx/ssl/certificate.crt:/etc/nginx/ssl/certificate.crt
       - ./nginx/ssl/private_key.key:/etc/nginx/ssl/private_key.key
 
-  # You do not need this if you have configured to use your own s3 file storage
-  minio:
-    restart: on-failure
-    image: minio/minio
-    environment:
-      - MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL?:err}/minio
-      - MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY:-minioadmin}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
+  # # You do not need this if you have configured to use your own s3 file storage
+  # minio:
+  #   restart: on-failure
+  #   image: minio/minio
+  #   environment:
+  #     - MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL?:err}/minio
+  #     - MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY:-minioadmin}
+  #     - MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY:-minioadmin}
+  #   command: server /data --console-address ":9001"
+  #   volumes:
+  #     - minio_data:/data
 
-  postgres:
-    restart: on-failure
-    image: pgvector/pgvector:pg16
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
-      - SUPABASE_PASSWORD=${SUPABASE_PASSWORD:-root}
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-    volumes:
-      - ./migrations/before:/docker-entrypoint-initdb.d
-      # - postgres_data:/var/lib/postgresql/data
+  # postgres:
+  #   restart: on-failure
+  #   image: pgvector/pgvector:pg16
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-postgres}
+  #     - POSTGRES_DB=${POSTGRES_DB:-postgres}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+  #     - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+  #     - SUPABASE_PASSWORD=${SUPABASE_PASSWORD:-root}
+  #   healthcheck:
+  #     test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}" ]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 12
+  #   volumes:
+  #     - ./migrations/before:/docker-entrypoint-initdb.d
+  #     # - postgres_data:/var/lib/postgresql/data
 
   # redis:
   #   restart: on-failure
@@ -109,7 +109,7 @@ services:
   #     - GOTRUE_SAML_ENABLED=${GOTRUE_SAML_ENABLED}
   #     - GOTRUE_SAML_PRIVATE_KEY=${GOTRUE_SAML_PRIVATE_KEY}
 
-  appflowy_cloud:
+  appflowycloud:
     restart: on-failure
     environment:
       ###########################
@@ -218,6 +218,19 @@ services:
       - APPFLOWY_MAILER_SMTP_EMAIL=${APPFLOWY_MAILER_SMTP_EMAIL}
       - APPFLOWY_MAILER_SMTP_PASSWORD=${APPFLOWY_MAILER_SMTP_PASSWORD}
       - APPFLOWY_MAILER_SMTP_TLS_KIND=${APPFLOWY_MAILER_SMTP_TLS_KIND}
+      ###########################
+      # Minio config
+      ###########################
+      - MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL?:err}/minio
+      - MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY:-minioadmin}
+      ###########################
+      # Admin frontend config
+      ########################### 
+      - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL}
+      - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://gotrue:9999}
+      - ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=${ADMIN_FRONTEND_APPFLOWY_CLOUD_URL:-http://appflowycloud:8000}
+      - ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX:-}
     build:
       context: .
       dockerfile: Dockerfile
@@ -230,26 +243,26 @@ services:
       retries: 12
     ports:
       - 8080:8080
-    image: appflowyinc/appflowy_cloud:${APPFLOWY_CLOUD_VERSION:-latest}
+    image: appflowyinc/appflowycloud:${APPFLOWY_CLOUD_VERSION:-latest}
     # depends_on:
     #   gotrue:
     #     condition: service_healthy
 
-  admin_frontend:
-    restart: on-failure
-    build:
-      context: .
-      dockerfile: ./admin_frontend/Dockerfile
-    image: appflowyinc/admin_frontend:${APPFLOWY_ADMIN_FRONTEND_VERSION:-latest}
-    environment:
-      - RUST_LOG=${RUST_LOG:-info}
-      - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL}
-      - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://gotrue:9999}
-      - ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=${ADMIN_FRONTEND_APPFLOWY_CLOUD_URL:-http://appflowy_cloud:8000}
-      - ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX:-}
-    depends_on:
-      appflowy_cloud:
-        condition: service_started
+  # admin_frontend:
+  #   restart: on-failure
+  #   build:
+  #     context: .
+  #     dockerfile: ./admin_frontend/Dockerfile
+  #   image: appflowyinc/admin_frontend:${APPFLOWY_ADMIN_FRONTEND_VERSION:-latest}
+  #   environment:
+  #     - RUST_LOG=${RUST_LOG:-info}
+  #     - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL}
+  #     - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://gotrue:9999}
+  #     - ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=${ADMIN_FRONTEND_APPFLOWY_CLOUD_URL:-http://appflowycloud:8000}
+  #     - ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX:-}
+  #   depends_on:
+  #     appflowycloud:
+  #       condition: service_started
 
   # ai:
   #   restart: on-failure
@@ -299,7 +312,7 @@ services:
     restart: on-failure
     image: appflowyinc/appflowy_web:${APPFLOWY_WEB_VERSION:-latest}
     depends_on:
-      - appflowy_cloud
+      - appflowycloud
 volumes:
   postgres_data:
   minio_data:

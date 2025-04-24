@@ -22,9 +22,6 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM shared_chef as shared_builder
 
-# Specify a default value for FEATURES; it could be an empty string if no features are enabled by default
-ARG FEATURES=""
-ARG PROFILE="release"
 
 COPY --from=shared_planner /app/recipe.json recipe.json
 # Build our project dependencies
@@ -45,17 +42,19 @@ COPY Cargo.lock Cargo.lock
 ENV SQLX_OFFLINE true
 
 # Build the project
-RUN echo "Building Cloud with profile: ${PROFILE}, features: ${FEATURES}, "
-RUN cargo build --profile=${PROFILE} --features "${FEATURES}" --bin appflowy_cloud
+RUN echo "Building Cloud"
+RUN cargo build --bin appflowy_cloud
 
 RUN echo "Building Worker"
 WORKDIR /app/services/appflowy-worker
-RUN cargo build --release --bin appflowy_worker
+RUN cargo build --bin appflowy_worker
+
+RUN echo "Building Admin Frontend"
+WORKDIR /app/admin_frontend
+RUN cargo build --bin admin_frontend
 
 FROM golang as gotrue_base
 WORKDIR /go/src/supabase
-RUN pwd
-RUN pwd
 RUN git clone https://github.com/pimpale/appflowy-auth-patch.git --depth 1 --branch magic_link_patch
 RUN mv appflowy-auth-patch auth
 WORKDIR /go/src/supabase/auth
@@ -108,6 +107,12 @@ COPY postgresql.conf /etc/postgresql/16/main/postgresql.conf
 COPY migrations/before /docker-entrypoint-initdb.d
 WORKDIR /app
 
+# install minio
+RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O minio.deb
+RUN dpkg -i minio.deb
+RUN mkdir -p /data
+EXPOSE 9000
+EXPOSE 9001
 
 # install gotrue
 RUN adduser supabase
@@ -119,14 +124,17 @@ USER root
 EXPOSE 9999
 
 # install cloud
-COPY --from=shared_builder /app/target/release/appflowy_cloud /usr/local/bin/appflowy_cloud
+COPY --from=shared_builder /app/target/debug/appflowy_cloud /usr/local/bin/appflowy_cloud
 ENV APP_ENVIRONMENT production
 ENV RUST_BACKTRACE 1
 EXPOSE 8000
 
 # install worker
-COPY --from=shared_builder /app/target/release/appflowy_worker /usr/local/bin/appflowy_worker
+COPY --from=shared_builder /app/target/debug/appflowy_worker /usr/local/bin/appflowy_worker
 
+# install admin frontend
+COPY --from=shared_builder /app/target/debug/admin_frontend /usr/local/bin/admin_frontend
+EXPOSE 3000
 
 ENV HOME=/root \
     DEBIAN_FRONTEND=noninteractive \

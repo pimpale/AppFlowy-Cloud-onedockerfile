@@ -443,6 +443,9 @@ async fn create_bucket_if_not_exists(
       .build()
   };
 
+  // print the bucket_cfg
+  info!("bucket_cfg: {:?}", bucket_cfg);
+
   match client
     .create_bucket()
     .bucket(&s3_setting.bucket)
