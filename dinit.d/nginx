@@ -1,0 +1,3 @@
+type = process
+command = /usr/bin/nginx
+logfile /var/log/dinit/nginx.log

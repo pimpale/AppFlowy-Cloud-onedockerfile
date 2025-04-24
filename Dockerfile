@@ -60,6 +60,19 @@ RUN mv appflowy-auth-patch auth
 WORKDIR /go/src/supabase/auth
 RUN CGO_ENABLED=0 go build -o /auth .
 
+
+# build web app
+FROM node:20.12.0 AS web_builder
+
+WORKDIR /app
+
+RUN npm install -g pnpm@8.5.0
+RUN git clone --depth 1 --branch main https://github.com/AppFlowy-IO/AppFlowy-Web.git .
+RUN pnpm install
+RUN sed -i 's|https://test.appflowy.cloud||g' src/components/main/app.hooks.ts
+RUN pnpm run build
+
+
 FROM ubuntu:24.04 AS runtime
 
 # Update and install dependencies
@@ -84,7 +97,9 @@ RUN apt-get update -y \
   redis-server \
   postgresql-16-pgvector \
   g++ \
-  m4 
+  m4 \
+  nginx
+
 RUN update-ca-certificates
 
 RUN add-apt-repository ppa:xtradeb/apps
@@ -135,6 +150,10 @@ COPY --from=shared_builder /app/target/debug/appflowy_worker /usr/local/bin/appf
 # install admin frontend
 COPY --from=shared_builder /app/target/debug/admin_frontend /usr/local/bin/admin_frontend
 EXPOSE 3000
+
+# install web app
+COPY --from=web_builder /app/dist /usr/share/nginx/html/
+COPY ./docker/web/nginx.conf /etc/nginx/nginx.conf
 
 ENV HOME=/root \
     DEBIAN_FRONTEND=noninteractive \
