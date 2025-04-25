@@ -354,13 +354,16 @@ async fn sign_in_handler(
   jar: CookieJar,
   Form(param): Form<WebApiLoginRequest>,
 ) -> Result<axum::response::Response, WebApiError<'static>> {
+  info!("sign in request: {:?}", param);
   let WebApiLoginRequest {
     email,
     password,
     redirect_to,
   } = param;
 
+
   if password.is_empty() {
+    info!("send magic link");
     let res = send_magic_link(State(state), &email).await?;
     return Ok(res.into_response());
   }
@@ -375,6 +378,7 @@ async fn sign_in_handler(
       },
     ))
     .await?;
+  info!("token: {:?}", token);
 
   session_login(State(state), token, jar, redirect_to.as_deref()).await
 }
@@ -586,12 +590,13 @@ async fn session_login(
   jar: CookieJar,
   redirect_to: Option<&str>,
 ) -> Result<axum::response::Response, WebApiError<'static>> {
+  info!("session login");
   verify_token_cloud(
     token.access_token.as_str(),
     state.appflowy_cloud_url.as_str(),
   )
   .await?;
-
+  info!("success verify token cloud");
   let new_session_id = uuid::Uuid::new_v4();
   let new_session = session::UserSession {
     session_id: new_session_id.to_string(),

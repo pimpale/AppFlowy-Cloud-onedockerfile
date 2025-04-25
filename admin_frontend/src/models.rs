@@ -16,7 +16,7 @@ impl AppState {
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct WebApiLoginRequest {
   pub email: String,
   pub password: String,

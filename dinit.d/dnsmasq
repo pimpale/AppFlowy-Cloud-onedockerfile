@@ -1,0 +1,3 @@
+type = process
+command = /usr/sbin/dnsmasq -d
+logfile = /var/log/dinit/dnsmasq.log

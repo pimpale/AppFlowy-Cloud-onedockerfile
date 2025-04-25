@@ -272,6 +272,7 @@ pub async fn verify_token_cloud(
     "{}/api/user/verify/{}",
     appflowy_cloud_base_url, access_token
   );
+  println!("verify token cloud: {:?}", url);
   let resp = http_client
     .get(url)
     .header("Authorization", format!("Bearer {}", access_token))

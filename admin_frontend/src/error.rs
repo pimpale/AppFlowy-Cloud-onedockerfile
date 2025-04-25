@@ -7,6 +7,7 @@ use axum::{
 
 use crate::ext;
 
+#[derive(Debug)]
 pub struct WebApiError<'a> {
   pub status_code: status::StatusCode,
   pub payload: Cow<'a, str>,

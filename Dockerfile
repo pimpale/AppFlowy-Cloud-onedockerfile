@@ -103,12 +103,15 @@ RUN apt-get update -y \
   postgresql-16-pgvector \
   g++ \
   m4 \
-  nginx
+  nginx \
+  dnsmasq
 
 RUN update-ca-certificates
 
 RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
+
+RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
 
 
 # install dinit
@@ -153,8 +156,7 @@ ENV APPFLOWY_S3_PRESIGNED_URL_ENDPOINT=${APPFLOWY_BASE_URL}/minio-api
 ENV MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL}/minio
 ENV MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY}
 ENV MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY}
-RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O minio.deb
-RUN dpkg -i minio.deb
+RUN dpkg -i /minio.deb
 RUN mkdir -p /data
 EXPOSE 9000
 EXPOSE 9001
@@ -213,6 +215,7 @@ USER root
 EXPOSE 9999
 
 # install cloud
+ENV APPFLOWY_CLOUD_HOST=0.0.0.0
 ENV APPFLOWY_APPLICATION_PORT=8000
 ENV APPFLOWY_GOTRUE_BASE_URL=http://${GOTRUE_HOST}:9999
 ENV APPFLOWY_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
@@ -268,7 +271,7 @@ ENV ADMIN_FRONTEND_HOST=0.0.0.0
 ENV ADMIN_FRONTEND_PORT=4000
 ENV ADMIN_FRONTEND_REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
 ENV ADMIN_FRONTEND_GOTRUE_URL=http://${GOTRUE_HOST}:9999
-ENV ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=http://${APPFLOWY_HOST}:8000
+ENV ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=http://${APPFLOWY_CLOUD_HOST}:${APPFLOWY_APPLICATION_PORT}
 ENV ADMIN_FRONTEND_PATH_PREFIX=/console
 COPY --from=shared_builder /app/target/debug/admin_frontend /usr/local/bin/admin_frontend
 COPY --from=shared_builder /app/admin_frontend/assets /app/admin_frontend_assets
