@@ -149,11 +149,13 @@ COPY --from=shared_builder /app/target/debug/appflowy_worker /usr/local/bin/appf
 
 # install admin frontend
 COPY --from=shared_builder /app/target/debug/admin_frontend /usr/local/bin/admin_frontend
-EXPOSE 3000
+COPY --from=shared_builder /app/admin_frontend/assets /app/admin_frontend_assets
+EXPOSE 4000
 
 # install web app
 COPY --from=web_builder /app/dist /usr/share/nginx/html/
-COPY ./docker/web/nginx.conf /etc/nginx/nginx.conf
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
 
 ENV HOME=/root \
     DEBIAN_FRONTEND=noninteractive \
@@ -164,7 +166,7 @@ ENV HOME=/root \
     DISPLAY_WIDTH=1024 \
     DISPLAY_HEIGHT=768
 
-EXPOSE 8080
+EXPOSE 6080
 
 
 

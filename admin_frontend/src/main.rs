@@ -79,7 +79,7 @@ async fn main() {
     )
     .nest_service("/web", web_app_router)
     .nest_service("/web-api", web_api_router)
-    .nest_service("/assets", ServeDir::new("assets"));
+    .nest_service("/assets", ServeDir::new("/app/admin_frontend_assets"));
   let app = if path_prefix.is_empty() {
     base_app
   } else {
