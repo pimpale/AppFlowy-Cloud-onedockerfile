@@ -90,7 +90,6 @@ RUN apt-get update -y \
   software-properties-common \
   sudo \
   bash \
-  fluxbox \
   git \
   net-tools \
   novnc \
@@ -104,9 +103,17 @@ RUN apt-get update -y \
   g++ \
   m4 \
   nginx \
-  dnsmasq
+  dnsmasq \
+  python3 \
+  python3-pip \
+  python3-dev \
+  python3-tk \
+  gnome-screenshot
 
 RUN update-ca-certificates
+
+# allow pip to install system packages
+RUN python3 -m pip config set global.break-system-packages true
 
 RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
