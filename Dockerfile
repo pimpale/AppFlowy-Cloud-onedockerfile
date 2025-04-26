@@ -130,15 +130,6 @@ RUN cd winbar && ./install.sh
 
 FROM ubuntu:24.04 AS runtime
 
-# copy dinit and winbar
-COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
-COPY --from=cpp_builder /usr/local/bin/winbar /usr/local/bin/winbar
-
-# Base URL configuration
-ENV FQDN=localhost
-ENV SCHEME=http
-ENV APPFLOWY_BASE_URL=${SCHEME}://${FQDN}
-
 # Update and install core dependencies
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
@@ -152,7 +143,6 @@ RUN apt-get update -y \
   net-tools \
   novnc \
   x11vnc \
-  xterm \
   xvfb \
   redis-server \
   postgresql-16-pgvector \
@@ -165,6 +155,12 @@ RUN apt-get update -y \
   gnome-screenshot
 
 RUN update-ca-certificates
+
+# copy dinit and winbar
+COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
+COPY --from=cpp_builder /usr/local/bin/winbar /usr/local/bin/winbar
+COPY --from=cpp_builder /usr/share/winbar /usr/share/winbar
+COPY --from=cpp_builder /etc/winbar.cfg /etc/winbar.cfg
 
 # install non-core dependencies (eg desktop env, taskbar deps, etc)
 RUN apt-get install -y \
@@ -197,19 +193,24 @@ libpango1.0-dev \
   libxcb-xinput0 \
   libglew-dev \
   libglm-dev \
-  openbox
+  openbox \
+  konsole
 
 # allow pip to install system packages
 RUN python3 -m pip config set global.break-system-packages true
 
+# install chromium
 RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
-
-# run with no sandbox by default
 RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
 
-
+# install minio
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
+
+# Base URL configuration
+ENV FQDN=localhost
+ENV SCHEME=http
+ENV APPFLOWY_BASE_URL=${SCHEME}://${FQDN}
 
 # install redis
 ENV REDIS_HOST=localhost
@@ -381,5 +382,5 @@ EXPOSE 6080
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
-RUN mkdir -p /var/log/dinit
+RUN mkdir -p /var/log/dinit && chmod 755 /var/log/dinit
 CMD ["dinit", "--container", "-d", "/etc/dinit.d/"]
