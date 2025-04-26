@@ -1,8 +1,0 @@
-type = process
-command = fluxbox
-logfile = /var/log/dinit/fluxbox.log
-restart = true
-# Requires X server
-depends-on = xvfb
-# This service likely needs the DISPLAY environment variable set.
-# Consider setting it via 'env = DISPLAY=:0' or an environment-file. 

@@ -1,0 +1,6 @@
+type = process
+command = /usr/bin/sudo -E -u ubuntu openbox
+logfile = /var/log/dinit/openbox.log
+restart = true
+# Requires X server
+depends-on = xvfb

@@ -73,14 +73,73 @@ RUN sed -i 's|https://test.appflowy.cloud||g' src/components/main/app.hooks.ts
 RUN pnpm run build
 
 
+FROM ubuntu:24.04 AS cpp_builder
+
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \
+  git \
+  g++ \
+  make \
+  cmake \
+  checkinstall \
+  pkg-config \
+  libpango1.0-dev \
+  libcairo2-dev \
+  librsvg2-dev \
+  libxcb1-dev \
+  libxcb-util-dev \
+  libpulse-dev \
+  libxkbcommon-dev \
+  libxkbcommon-x11-dev \
+  libconfig++-dev \
+  libxcb-keysyms1-dev \
+  libxcb-image0-dev \
+  papirus-icon-theme \
+  lxappearance \
+  unzip \
+  libxcb-randr0-dev \
+  libxcb-record0-dev \
+  libxcb-ewmh-dev \
+  libxcb-icccm4-dev \
+  libx11-xcb-dev \
+  libxcb-cursor-dev \
+  libdbus-1-dev \
+  libfontconfig1-dev \
+  libasound2-dev \
+  libcurl4 \
+  libcurl4-openssl-dev \
+  libxcb-xinput-dev \
+  libxcb-xinput0 \
+  libglew-dev \
+  libglm-dev \
+  m4 \
+  openssl \
+  ca-certificates \
+  sudo
+
+RUN update-ca-certificates
+
+# git clone dinit and winbar
+RUN git clone https://github.com/jmanc3/winbar --depth 1
+RUN git clone https://github.com/davmac314/dinit --depth 1
+
+# build dinit
+RUN cd dinit && make && make install
+# build winbar
+RUN cd winbar && ./install.sh
+
 FROM ubuntu:24.04 AS runtime
+
+# copy dinit and winbar
+COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
+COPY --from=cpp_builder /usr/local/bin/winbar /usr/local/bin/winbar
 
 # Base URL configuration
 ENV FQDN=localhost
 ENV SCHEME=http
 ENV APPFLOWY_BASE_URL=${SCHEME}://${FQDN}
 
-# Update and install dependencies
+# Update and install core dependencies
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
   openssl \
@@ -90,18 +149,13 @@ RUN apt-get update -y \
   software-properties-common \
   sudo \
   bash \
-  git \
   net-tools \
   novnc \
-  supervisor \
   x11vnc \
   xterm \
   xvfb \
-  make \
   redis-server \
   postgresql-16-pgvector \
-  g++ \
-  m4 \
   nginx \
   dnsmasq \
   python3 \
@@ -112,19 +166,51 @@ RUN apt-get update -y \
 
 RUN update-ca-certificates
 
+# install non-core dependencies (eg desktop env, taskbar deps, etc)
+RUN apt-get install -y \
+libpango1.0-dev \
+  libcairo2-dev \
+  librsvg2-dev \
+  libxcb1-dev \
+  libxcb-util-dev \
+  libpulse-dev \
+  libxkbcommon-dev \
+  libxkbcommon-x11-dev \
+  libconfig++-dev \
+  libxcb-keysyms1-dev \
+  libxcb-image0-dev \
+  papirus-icon-theme \
+  lxappearance \
+  unzip \
+  libxcb-randr0-dev \
+  libxcb-record0-dev \
+  libxcb-ewmh-dev \
+  libxcb-icccm4-dev \
+  libx11-xcb-dev \
+  libxcb-cursor-dev \
+  libdbus-1-dev \
+  libfontconfig1-dev \
+  libasound2-dev \
+  libcurl4 \
+  libcurl4-openssl-dev \
+  libxcb-xinput-dev \
+  libxcb-xinput0 \
+  libglew-dev \
+  libglm-dev \
+  openbox
+
 # allow pip to install system packages
 RUN python3 -m pip config set global.break-system-packages true
 
 RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
 
+# run with no sandbox by default
+RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
+
+
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
 
-
-# install dinit
-RUN git clone https://github.com/davmac314/dinit && \
-    cd dinit && make && make install
-  
 # install redis
 ENV REDIS_HOST=localhost
 ENV REDIS_PORT=6379
@@ -138,7 +224,6 @@ ENV POSTGRES_PASSWORD=password
 ENV POSTGRES_PORT=5432
 ENV POSTGRES_DB=postgres
 ENV SUPABASE_PASSWORD=root
-EXPOSE 5432
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=password
 ENV POSTGRES_DB=postgres
@@ -165,8 +250,6 @@ ENV MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY}
 ENV MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY}
 RUN dpkg -i /minio.deb
 RUN mkdir -p /data
-EXPOSE 9000
-EXPOSE 9001
 
 # install gotrue
 ENV GOTRUE_HOST=localhost
@@ -219,7 +302,6 @@ COPY --from=gotrue_builder /auth /usr/local/bin/auth
 COPY --from=gotrue_builder /go/src/supabase/auth/migrations /usr/local/etc/auth/migrations
 ENV GOTRUE_DB_MIGRATIONS_PATH /usr/local/etc/auth/migrations
 USER root
-EXPOSE 9999
 
 # install cloud
 ENV APPFLOWY_CLOUD_HOST=0.0.0.0
@@ -265,7 +347,6 @@ ENV APPFLOWY_GOTRUE_EXT_URL=${API_EXTERNAL_URL}
 COPY --from=shared_builder /app/target/debug/appflowy_cloud /usr/local/bin/appflowy_cloud
 ENV APP_ENVIRONMENT production
 ENV RUST_BACKTRACE 1
-EXPOSE 8000
 
 # install worker
 ENV APPFLOWY_WORKER_REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
@@ -282,14 +363,12 @@ ENV ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=http://${APPFLOWY_CLOUD_HOST}:${APPFLOWY_A
 ENV ADMIN_FRONTEND_PATH_PREFIX=/console
 COPY --from=shared_builder /app/target/debug/admin_frontend /usr/local/bin/admin_frontend
 COPY --from=shared_builder /app/admin_frontend/assets /app/admin_frontend_assets
-EXPOSE 4000
 
 # install web app
 COPY --from=web_builder /app/dist /usr/share/nginx/html/
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
 
-ENV HOME=/root \
+ENV HOME=/home/ubuntu \
     DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
@@ -299,8 +378,6 @@ ENV HOME=/root \
     DISPLAY_HEIGHT=768
 
 EXPOSE 6080
-
-
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/

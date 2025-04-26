@@ -1,6 +1,0 @@
-type = process
-command = xterm
-logfile = /var/log/dinit/xterm.log
-restart = true
-# Requires X server
-depends-on = xvfb
