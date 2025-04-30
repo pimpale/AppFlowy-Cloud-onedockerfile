@@ -94,6 +94,22 @@ RUN git clone https://github.com/davmac314/dinit --depth 1
 # build dinit
 RUN cd dinit && make && make install
 
+
+FROM ubuntu:24.04 AS downloads_cache
+
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \ 
+  wget \
+  ca-certificates \
+  sudo
+
+RUN update-ca-certificates
+
+# download cache ordering should not be changed! Otherwise everything will have to be redownloaded
+RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.8.9-linux-x86_64.deb -O /appflowy.deb
+RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.0.deb -O /appflowy-extractor.deb  
+RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
+
 FROM ubuntu:24.04 AS runtime
 
 # Update and install core dependencies
@@ -120,7 +136,8 @@ RUN apt-get update -y \
   python3-tk \
   gnome-screenshot \
   xfce4 \
-  dbus-x11
+  dbus-x11 \
+  xfonts-base
 
 RUN update-ca-certificates
 
@@ -132,8 +149,11 @@ RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
 RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
 
-# install minio
-RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
+# install appflowy + appflowy-extractor
+COPY --from=downloads_cache /appflowy.deb /appflowy.deb
+COPY --from=downloads_cache /appflowy-extractor.deb /appflowy-extractor.deb
+RUN dpkg -i /appflowy.deb
+RUN dpkg -i /appflowy-extractor.deb
 
 # Base URL configuration
 ENV FQDN=localhost
@@ -177,6 +197,7 @@ ENV APPFLOWY_S3_PRESIGNED_URL_ENDPOINT=${APPFLOWY_BASE_URL}/minio-api
 ENV MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL}/minio
 ENV MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY}
 ENV MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY}
+COPY --from=downloads_cache /minio.deb /minio.deb
 RUN dpkg -i /minio.deb
 RUN mkdir -p /data
 
