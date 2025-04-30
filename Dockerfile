@@ -81,37 +81,6 @@ RUN apt-get update -y \
   g++ \
   make \
   cmake \
-  checkinstall \
-  pkg-config \
-  libpango1.0-dev \
-  libcairo2-dev \
-  librsvg2-dev \
-  libxcb1-dev \
-  libxcb-util-dev \
-  libpulse-dev \
-  libxkbcommon-dev \
-  libxkbcommon-x11-dev \
-  libconfig++-dev \
-  libxcb-keysyms1-dev \
-  libxcb-image0-dev \
-  papirus-icon-theme \
-  lxappearance \
-  unzip \
-  libxcb-randr0-dev \
-  libxcb-record0-dev \
-  libxcb-ewmh-dev \
-  libxcb-icccm4-dev \
-  libx11-xcb-dev \
-  libxcb-cursor-dev \
-  libdbus-1-dev \
-  libfontconfig1-dev \
-  libasound2-dev \
-  libcurl4 \
-  libcurl4-openssl-dev \
-  libxcb-xinput-dev \
-  libxcb-xinput0 \
-  libglew-dev \
-  libglm-dev \
   m4 \
   openssl \
   ca-certificates \
@@ -119,14 +88,11 @@ RUN apt-get update -y \
 
 RUN update-ca-certificates
 
-# git clone dinit and winbar
-RUN git clone https://github.com/jmanc3/winbar --depth 1
+# git clone dinit
 RUN git clone https://github.com/davmac314/dinit --depth 1
 
 # build dinit
 RUN cd dinit && make && make install
-# build winbar
-RUN cd winbar && ./install.sh
 
 FROM ubuntu:24.04 AS runtime
 
@@ -152,52 +118,14 @@ RUN apt-get update -y \
   python3-pip \
   python3-dev \
   python3-tk \
-  gnome-screenshot
+  gnome-screenshot \
+  xfce4 \
+  dbus-x11
 
 RUN update-ca-certificates
 
-# copy dinit and winbar
+# copy dinit
 COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
-COPY --from=cpp_builder /usr/local/bin/winbar /usr/local/bin/winbar
-COPY --from=cpp_builder /usr/share/winbar /usr/share/winbar
-COPY --from=cpp_builder /etc/winbar.cfg /etc/winbar.cfg
-
-# install non-core dependencies (eg desktop env, taskbar deps, etc)
-RUN apt-get install -y \
-libpango1.0-dev \
-  libcairo2-dev \
-  librsvg2-dev \
-  libxcb1-dev \
-  libxcb-util-dev \
-  libpulse-dev \
-  libxkbcommon-dev \
-  libxkbcommon-x11-dev \
-  libconfig++-dev \
-  libxcb-keysyms1-dev \
-  libxcb-image0-dev \
-  papirus-icon-theme \
-  lxappearance \
-  unzip \
-  libxcb-randr0-dev \
-  libxcb-record0-dev \
-  libxcb-ewmh-dev \
-  libxcb-icccm4-dev \
-  libx11-xcb-dev \
-  libxcb-cursor-dev \
-  libdbus-1-dev \
-  libfontconfig1-dev \
-  libasound2-dev \
-  libcurl4 \
-  libcurl4-openssl-dev \
-  libxcb-xinput-dev \
-  libxcb-xinput0 \
-  libglew-dev \
-  libglm-dev \
-  openbox \
-  konsole
-
-# allow pip to install system packages
-RUN python3 -m pip config set global.break-system-packages true
 
 # install chromium
 RUN add-apt-repository ppa:xtradeb/apps
@@ -379,6 +307,10 @@ ENV HOME=/home/ubuntu \
     DISPLAY_HEIGHT=768
 
 EXPOSE 6080
+
+# create .cache and .config directories owned by ubuntu
+RUN mkdir -p /home/ubuntu/.cache && chown -R ubuntu:ubuntu /home/ubuntu/.cache
+RUN mkdir -p /home/ubuntu/.config && chown -R ubuntu:ubuntu /home/ubuntu/.config
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/

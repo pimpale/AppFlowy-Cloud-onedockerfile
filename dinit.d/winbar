@@ -1,4 +1,0 @@
-type=process
-command=sudo -E -u ubuntu winbar
-logfile=/var/log/dinit/winbar.log
-depends-on=openbox
