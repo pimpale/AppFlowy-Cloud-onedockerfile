@@ -137,7 +137,8 @@ RUN apt-get update -y \
   gnome-screenshot \
   xfce4 \
   dbus-x11 \
-  xfonts-base
+  xfonts-base \
+  xdotool
 
 RUN update-ca-certificates
 
