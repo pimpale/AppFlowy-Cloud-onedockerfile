@@ -138,7 +138,8 @@ RUN apt-get update -y \
   xfce4 \
   dbus-x11 \
   xfonts-base \
-  xdotool
+  xdotool \
+  psmisc
 
 RUN update-ca-certificates
 
