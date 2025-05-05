@@ -139,7 +139,9 @@ RUN apt-get update -y \
   dbus-x11 \
   xfonts-base \
   xdotool \
-  psmisc
+  psmisc \
+  scrot \
+  imagemagick
 
 RUN update-ca-certificates
 
@@ -334,6 +336,8 @@ EXPOSE 6080
 # create .cache and .config directories owned by ubuntu
 RUN mkdir -p /home/ubuntu/.cache && chown -R ubuntu:ubuntu /home/ubuntu/.cache
 RUN mkdir -p /home/ubuntu/.config && chown -R ubuntu:ubuntu /home/ubuntu/.config
+
+WORKDIR /
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
