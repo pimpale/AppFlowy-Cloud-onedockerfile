@@ -1,3 +1,0 @@
-type = process
-command = /usr/bin/dbus-daemon --nofork --system
-logfile = /var/log/dinit/dbus.log

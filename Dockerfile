@@ -327,7 +327,7 @@ ENV HOME=/home/ubuntu \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
     LC_ALL=C.UTF-8 \
-    DISPLAY=:0.0 \
+    DISPLAY=:1.0 \
     DISPLAY_WIDTH=1280 \
     DISPLAY_HEIGHT=800
 

@@ -1,5 +1,3 @@
 type = scripted
 command = /usr/bin/sudo -E -u ubuntu bash -c "touch $HOME/.Xauthority && xauth add $DISPLAY $HOME `mcookie`"
 logfile = /var/log/dinit/mk_xauth.log
-# This service likely needs the DISPLAY environment variable set.
-# Consider setting it via 'env = DISPLAY=:0' or an environment-file. 
