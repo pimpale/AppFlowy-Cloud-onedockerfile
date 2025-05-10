@@ -645,7 +645,7 @@ pub struct AFUserProfile {
   pub updated_at: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AFWorkspace {
   pub workspace_id: Uuid,
   pub database_storage_id: Uuid,
@@ -718,6 +718,7 @@ pub struct AFWorkspaceMember {
   pub email: String,
   pub role: AFRole,
   pub avatar_url: Option<String>,
+  pub joined_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -1246,7 +1247,7 @@ pub struct WorkspaceInviteCodeParams {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WorkspaceInviteToken {
-  pub code: String,
+  pub code: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

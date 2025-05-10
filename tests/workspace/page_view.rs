@@ -9,9 +9,11 @@ use collab_entity::CollabType;
 use collab_folder::{CollabOrigin, Folder};
 use serde_json::{json, Value};
 use shared_entity::dto::workspace_dto::{
-  AddRecentPagesParams, AppendBlockToPageParams, CreatePageDatabaseViewParams, CreatePageParams,
-  CreateSpaceParams, DuplicatePageParams, FavoritePageParams, IconType, MovePageParams,
-  PublishPageParams, SpacePermission, UpdatePageParams, UpdateSpaceParams, ViewIcon, ViewLayout,
+  AddRecentPagesParams, AppendBlockToPageParams, CreateFolderViewParams,
+  CreatePageDatabaseViewParams, CreatePageParams, CreateSpaceParams, DuplicatePageParams,
+  FavoritePageParams, IconType, MovePageParams, PublishPageParams, SpacePermission,
+  UpdatePageExtraParams, UpdatePageIconParams, UpdatePageNameParams, UpdatePageParams,
+  UpdateSpaceParams, ViewIcon, ViewLayout,
 };
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -155,6 +157,52 @@ async fn create_new_page_with_database() {
       .await
       .unwrap();
   }
+}
+
+#[tokio::test]
+async fn create_new_folder_view() {
+  let (c, _user) = generate_unique_registered_user_client().await;
+  let workspaces = c.get_workspaces().await.unwrap();
+  assert_eq!(workspaces.len(), 1);
+  let workspace_id = workspaces[0].workspace_id;
+  let folder_view = c
+    .get_workspace_folder(&workspace_id, Some(2), None)
+    .await
+    .unwrap();
+  let general_space = &folder_view
+    .children
+    .into_iter()
+    .find(|v| v.name == "General")
+    .unwrap();
+  let page = c
+    .create_folder_view(
+      workspace_id,
+      &CreateFolderViewParams {
+        parent_view_id: general_space.view_id,
+        layout: ViewLayout::Document,
+        name: Some("New document".to_string()),
+        view_id: None,
+        database_id: None,
+      },
+    )
+    .await
+    .unwrap();
+  sleep(Duration::from_secs(1)).await;
+  let folder_view = c
+    .get_workspace_folder(&workspace_id, Some(2), None)
+    .await
+    .unwrap();
+  let general_space = &folder_view
+    .children
+    .into_iter()
+    .find(|v| v.name == "General")
+    .unwrap();
+  let view = general_space
+    .children
+    .iter()
+    .find(|v| v.view_id == page.view_id)
+    .unwrap();
+  assert_eq!(view.name, "New document");
 }
 
 #[tokio::test]
@@ -765,6 +813,64 @@ async fn update_page() {
     Some(json!({"is_pinned": true}).to_string())
   );
   assert_eq!(updated_view.is_locked, None);
+  web_client
+    .api_client
+    .update_page_name(
+      workspace_id,
+      &view_id_to_be_updated,
+      &UpdatePageNameParams {
+        name: "Another Name".to_string(),
+      },
+    )
+    .await
+    .unwrap();
+  web_client
+    .api_client
+    .update_page_icon(
+      workspace_id,
+      &view_id_to_be_updated,
+      &UpdatePageIconParams {
+        icon: ViewIcon {
+          ty: IconType::Emoji,
+          value: "😎".to_string(),
+        },
+      },
+    )
+    .await
+    .unwrap();
+  web_client
+    .api_client
+    .update_page_extra(
+      workspace_id,
+      &view_id_to_be_updated,
+      &UpdatePageExtraParams {
+        extra: json!({"is_pinned": false}).to_string(),
+      },
+    )
+    .await
+    .unwrap();
+  let folder = get_latest_folder(&app_client, &workspace_id).await;
+  let updated_view = folder.get_view(&view_id_to_be_updated.to_string()).unwrap();
+  assert_eq!(updated_view.name, "Another Name");
+  assert_eq!(
+    updated_view.icon,
+    Some(collab_folder::ViewIcon {
+      ty: collab_folder::IconType::Emoji,
+      value: "😎".to_string(),
+    })
+  );
+  assert_eq!(
+    updated_view.extra,
+    Some(json!({"is_pinned": false}).to_string())
+  );
+  web_client
+    .api_client
+    .remove_page_icon(workspace_id, &view_id_to_be_updated)
+    .await
+    .unwrap();
+  let folder = get_latest_folder(&app_client, &workspace_id).await;
+  let updated_view = folder.get_view(&view_id_to_be_updated.to_string()).unwrap();
+  assert_eq!(updated_view.icon, None);
 }
 
 #[tokio::test]

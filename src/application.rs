@@ -55,6 +55,7 @@ use crate::api::ai::ai_completion_scope;
 use crate::api::chat::chat_scope;
 use crate::api::data_import::data_import_scope;
 use crate::api::file_storage::file_storage_scope;
+use crate::api::guest::sharing_scope;
 use crate::api::invite_code::invite_code_scope;
 use crate::api::metrics::metrics_scope;
 use crate::api::search::search_scope;
@@ -165,6 +166,7 @@ pub async fn run_actix_server(
       .service(template_scope())
       .service(data_import_scope())
       .service(access_request_scope())
+      .service(sharing_scope())
       .route("/health", web::get().to(health_check))
       .app_data(Data::new(state.metrics.registry.clone()))
       .app_data(Data::new(state.metrics.request_metrics.clone()))
@@ -356,11 +358,9 @@ fn get_admin_client(
   gotrue_client: gotrue::api::Client,
   gotrue_setting: &GoTrueSetting,
 ) -> GoTrueAdmin {
-  let admin_email = gotrue_setting.admin_email.as_str();
-  let password = gotrue_setting.admin_password.expose_secret();
   GoTrueAdmin::new(
-    admin_email.to_owned(),
-    password.to_owned(),
+    gotrue_setting.jwt_secret.expose_secret().to_owned(),
+    gotrue_setting.service_role.clone(),
     gotrue_client.clone(),
   )
 }

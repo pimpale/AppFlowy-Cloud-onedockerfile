@@ -518,8 +518,13 @@ pub async fn select_workspace_member_list(
   let members = sqlx::query_as!(
     AFWorkspaceMemberRow,
     r#"
-    SELECT af_user.uid, af_user.name, af_user.email,
-    af_workspace_member.role_id AS role
+    SELECT
+      af_user.uid,
+      af_user.name,
+      af_user.email,
+      af_user.metadata ->> 'icon_url' AS avatar_url,
+      af_workspace_member.role_id AS role,
+      af_workspace_member.created_at
     FROM public.af_workspace_member
         JOIN public.af_user ON af_workspace_member.uid = af_user.uid
     WHERE af_workspace_member.workspace_id = $1
@@ -541,7 +546,13 @@ pub async fn select_workspace_member<'a, E: Executor<'a, Database = Postgres>>(
   let member = sqlx::query_as!(
     AFWorkspaceMemberRow,
     r#"
-    SELECT af_user.uid, af_user.name, af_user.email, af_workspace_member.role_id AS role
+    SELECT
+      af_user.uid,
+      af_user.name,
+      af_user.email,
+      af_user.metadata ->> 'icon_url' AS avatar_url,
+      af_workspace_member.role_id AS role,
+      af_workspace_member.created_at
     FROM public.af_workspace_member
       JOIN public.af_user ON af_workspace_member.uid = af_user.uid
     WHERE af_workspace_member.workspace_id = $1
@@ -564,7 +575,13 @@ pub async fn select_workspace_member_by_uuid<'a, E: Executor<'a, Database = Post
   let member = sqlx::query_as!(
     AFWorkspaceMemberRow,
     r#"
-    SELECT af_user.uid, af_user.name, af_user.email, af_workspace_member.role_id AS role
+    SELECT
+      af_user.uid,
+      af_user.name,
+      af_user.email,
+      af_user.metadata ->> 'icon_url' AS avatar_url,
+      af_workspace_member.role_id AS role,
+      af_workspace_member.created_at
     FROM public.af_workspace_member
       JOIN public.af_user ON af_workspace_member.uid = af_user.uid
     WHERE af_workspace_member.workspace_id = $1
@@ -745,6 +762,44 @@ pub async fn select_all_user_workspaces<'a, E: Executor<'a, Database = Postgres>
       AND COALESCE(w.is_initialized, true) = true;
     "#,
     user_uuid
+  )
+  .fetch_all(executor)
+  .await?;
+  Ok(workspaces)
+}
+
+/// Returns a list of workspaces that the user is part of.
+/// User must be at least member.
+#[inline]
+pub async fn select_all_user_non_guest_workspaces<'a, E: Executor<'a, Database = Postgres>>(
+  executor: E,
+  user_uuid: &Uuid,
+) -> Result<Vec<AFWorkspaceRow>, AppError> {
+  let workspaces = sqlx::query_as!(
+    AFWorkspaceRow,
+    r#"
+      SELECT
+        w.workspace_id,
+        w.database_storage_id,
+        w.owner_uid,
+        u.name AS owner_name,
+        u.email AS owner_email,
+        w.created_at,
+        w.workspace_type,
+        w.deleted_at,
+        w.workspace_name,
+        w.icon
+      FROM af_workspace w
+      JOIN af_workspace_member wm ON w.workspace_id = wm.workspace_id
+      JOIN public.af_user u ON w.owner_uid = u.uid
+      WHERE wm.uid = (
+         SELECT uid FROM public.af_user WHERE uuid = $1
+      )
+      AND wm.role_id != $2
+      AND COALESCE(w.is_initialized, true) = true;
+    "#,
+    user_uuid,
+    AFRole::Guest as i32,
   )
   .fetch_all(executor)
   .await?;
@@ -1546,7 +1601,7 @@ pub async fn select_invitation_code_info<'a, E: Executor<'a, Database = Postgres
         FROM af_workspace_invite_code
         JOIN af_workspace_member USING (workspace_id)
         WHERE invite_code = $1
-        AND (expires_at IS NULL OR expires_at < NOW())
+        AND (expires_at IS NULL OR expires_at > NOW())
         GROUP BY invite_code
       )
       SELECT
@@ -1588,6 +1643,41 @@ pub async fn upsert_workspace_member_uid<'a, E: Executor<'a, Database = Postgres
     workspace_id,
     uid,
     role_id,
+  )
+  .execute(executor)
+  .await?;
+
+  Ok(())
+}
+
+pub async fn select_invite_code_for_workspace_id<'a, E: Executor<'a, Database = Postgres>>(
+  executor: E,
+  workspace_id: &Uuid,
+) -> Result<Option<String>, AppError> {
+  let code = sqlx::query_scalar!(
+    r#"
+      SELECT invite_code
+      FROM af_workspace_invite_code
+      WHERE workspace_id = $1
+    "#,
+    workspace_id,
+  )
+  .fetch_optional(executor)
+  .await?;
+
+  Ok(code)
+}
+
+pub async fn delete_all_invite_code_for_workspace<'a, E: Executor<'a, Database = Postgres>>(
+  executor: E,
+  workspace_id: &Uuid,
+) -> Result<(), AppError> {
+  sqlx::query!(
+    r#"
+      DELETE FROM af_workspace_invite_code
+      WHERE workspace_id = $1
+    "#,
+    workspace_id,
   )
   .execute(executor)
   .await?;

@@ -297,6 +297,28 @@ impl Client {
     Ok(())
   }
 
+  /// Sign in with recovery token
+  ///
+  /// User will receive an email with a recovery code to sign in after clicking Forget Password.
+  #[instrument(level = "debug", skip_all, err)]
+  pub async fn sign_in_with_recovery_code(
+    &self,
+    email: &str,
+    passcode: &str,
+  ) -> Result<GotrueTokenResponse, AppResponseError> {
+    let response = self
+      .gotrue_client
+      .verify(&VerifyParams {
+        email: email.to_owned(),
+        token: passcode.to_owned(),
+        type_: VerifyType::Recovery,
+      })
+      .await?;
+    let _ = self.verify_token_cloud(&response.access_token).await?;
+    self.token.write().set(response.clone());
+    Ok(response)
+  }
+
   /// Sign in with passcode (OTP)
   ///
   /// User will receive an email with a passcode to sign in.
@@ -313,7 +335,7 @@ impl Client {
       .verify(&VerifyParams {
         email: email.to_owned(),
         token: passcode.to_owned(),
-        type_: VerifyType::Recovery,
+        type_: VerifyType::MagicLink,
       })
       .await?;
     let _ = self.verify_token_cloud(&response.access_token).await?;
@@ -848,6 +870,38 @@ impl Client {
       .send()
       .await?;
     process_response_data::<WorkspaceInviteCode>(resp).await
+  }
+
+  pub async fn get_workspace_invitation_code(
+    &self,
+    workspace_id: &Uuid,
+  ) -> Result<WorkspaceInviteCode, AppResponseError> {
+    let url = format!(
+      "{}/api/workspace/{}/invite-code",
+      self.base_url, workspace_id
+    );
+    let resp = self
+      .http_client_with_auth(Method::GET, &url)
+      .await?
+      .send()
+      .await?;
+    process_response_data::<WorkspaceInviteCode>(resp).await
+  }
+
+  pub async fn delete_workspace_invitation_code(
+    &self,
+    workspace_id: &Uuid,
+  ) -> Result<(), AppResponseError> {
+    let url = format!(
+      "{}/api/workspace/{}/invite-code",
+      self.base_url, workspace_id
+    );
+    let resp = self
+      .http_client_with_auth(Method::DELETE, &url)
+      .await?
+      .send()
+      .await?;
+    process_response_error(resp).await
   }
 
   #[instrument(level = "info", skip_all, err)]
