@@ -7,3 +7,4 @@ smooth-recovery = true
 depends-on = setup_postgres_env
 depends-on = redis
 depends-on = gotrue
+depends-on = minio

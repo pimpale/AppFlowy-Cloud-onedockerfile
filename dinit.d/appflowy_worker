@@ -5,3 +5,4 @@ smooth-recovery = true
 
 # Waits for the postgres init script to complete
 depends-on = appflowy_cloud
+depends-on = minio
