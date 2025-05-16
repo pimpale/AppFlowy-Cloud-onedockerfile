@@ -106,9 +106,9 @@ RUN apt-get update -y \
 RUN update-ca-certificates
 
 # download cache ordering should not be changed! Otherwise everything will have to be redownloaded
-RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.9.1.deb -O /appflowy.deb
-RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.1.deb -O /appflowy-extractor.deb  
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
+RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.1.deb -O /appflowy-extractor.deb  
+RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.9.1.deb -O /appflowy.deb
 
 FROM ubuntu:24.04 AS runtime
 
