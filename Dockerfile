@@ -141,7 +141,8 @@ RUN apt-get update -y \
   xdotool \
   psmisc \
   scrot \
-  imagemagick
+  imagemagick \
+  pm-utils
 
 RUN update-ca-certificates
 
@@ -332,6 +333,10 @@ ENV HOME=/home/ubuntu \
     DISPLAY_HEIGHT=800
 
 EXPOSE 6080
+
+# supress AT-SPI errors
+ENV NO_AT_BRIDGE=1
+
 
 # create .cache and .config directories owned by ubuntu
 RUN mkdir -p /home/ubuntu/.cache && chown -R ubuntu:ubuntu /home/ubuntu/.cache
