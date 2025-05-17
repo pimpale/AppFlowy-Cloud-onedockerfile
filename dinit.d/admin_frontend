@@ -1,5 +1,5 @@
 type = process
-command = /usr/local/bin/admin_frontend
+command = bash -c "sleep 3 && /usr/local/bin/admin_frontend"
 logfile = /var/log/dinit/admin_frontend.log
 smooth-recovery = true
 
