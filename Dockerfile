@@ -73,7 +73,7 @@ RUN sed -i 's|https://test.appflowy.cloud||g' src/components/main/app.hooks.ts
 RUN pnpm run build
 
 
-FROM ubuntu:24.04 AS cpp_builder
+FROM debian:trixie AS cpp_builder
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
@@ -95,7 +95,7 @@ RUN git clone https://github.com/davmac314/dinit --depth 1
 RUN cd dinit && make && make install
 
 
-FROM ubuntu:24.04 AS downloads_cache
+FROM debian:trixie AS downloads_cache
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
@@ -110,7 +110,7 @@ RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_202504
 RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.1.deb -O /appflowy-extractor.deb  
 RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.9.1.deb -O /appflowy.deb
 
-FROM ubuntu:24.04 AS runtime
+FROM debian:trixie AS runtime
 
 # Update and install core dependencies
 RUN apt-get update -y \
@@ -119,7 +119,6 @@ RUN apt-get update -y \
   ca-certificates \
   curl \
   wget \
-  software-properties-common \
   sudo \
   bash \
   net-tools \
@@ -127,7 +126,6 @@ RUN apt-get update -y \
   x11vnc \
   xvfb \
   redis-server \
-  postgresql-16-pgvector \
   nginx \
   dnsmasq \
   python3 \
@@ -141,15 +139,24 @@ RUN apt-get update -y \
   psmisc \
   scrot \
   imagemagick \
-  pm-utils
+  pm-utils \
+  python-is-python3 \
+  unzip \
+  postgresql-common
 
 RUN update-ca-certificates
+
+RUN install -d /usr/share/postgresql-common/pgdg
+RUN curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+ENV VERSION_CODENAME=trixie
+RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
+RUN apt update -y && apt install -y postgresql-16-pgvector postgresql-16
 
 # copy dinit
 COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
 
 # install chromium
-RUN add-apt-repository ppa:xtradeb/apps
+# RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
 RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
 
@@ -336,6 +343,8 @@ EXPOSE 6080
 # supress AT-SPI errors
 ENV NO_AT_BRIDGE=1
 
+# create user ubuntu
+RUN adduser ubuntu
 
 # create .cache and .config directories owned by ubuntu
 RUN mkdir -p /home/ubuntu/.cache && chown -R ubuntu:ubuntu /home/ubuntu/.cache
