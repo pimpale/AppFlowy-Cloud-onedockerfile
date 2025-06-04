@@ -106,8 +106,8 @@ RUN apt-get update -y \
 RUN update-ca-certificates
 
 # download cache ordering should not be changed! Otherwise everything will have to be redownloaded
+RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.1.deb -O /appflowy-extractor.deb 
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
-RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-0.9.1.deb -O /appflowy-extractor.deb  
 RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.9.1.deb -O /appflowy.deb
 
 FROM debian:trixie AS runtime
@@ -159,6 +159,10 @@ COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
 # RUN add-apt-repository ppa:xtradeb/apps
 RUN apt-get install -y chromium
 RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
+
+
+# create user ubuntu
+RUN adduser ubuntu
 
 # install appflowy + appflowy-extractor
 COPY --from=downloads_cache /appflowy.deb /appflowy.deb
@@ -343,8 +347,6 @@ EXPOSE 6080
 # supress AT-SPI errors
 ENV NO_AT_BRIDGE=1
 
-# create user ubuntu
-RUN adduser ubuntu
 
 # create .cache and .config directories owned by ubuntu
 RUN mkdir -p /home/ubuntu/.cache && chown -R ubuntu:ubuntu /home/ubuntu/.cache
