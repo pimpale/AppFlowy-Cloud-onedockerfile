@@ -330,3 +330,4 @@ WORKDIR /
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
 RUN mkdir -p /var/log/dinit && chmod 755 /var/log/dinit
+RUN chmod 777 /root
