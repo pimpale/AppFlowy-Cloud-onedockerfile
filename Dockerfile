@@ -73,29 +73,7 @@ RUN sed -i 's|https://test.appflowy.cloud||g' src/components/main/app.hooks.ts
 RUN pnpm run build
 
 
-FROM debian:trixie AS cpp_builder
-
-RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends \
-  git \
-  g++ \
-  make \
-  cmake \
-  m4 \
-  openssl \
-  ca-certificates \
-  sudo
-
-RUN update-ca-certificates
-
-# git clone dinit
-RUN git clone https://github.com/davmac314/dinit --depth 1
-
-# build dinit
-RUN cd dinit && make && make install
-
-
-FROM debian:trixie AS downloads_cache
+FROM ubuntu:24.04 AS downloads_cache
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
@@ -110,13 +88,14 @@ RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-extractor-
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20250422221226.0.0_amd64.deb -O /minio.deb
 RUN wget https://hud-evals-public.s3.us-east-1.amazonaws.com/AppFlowy-0.9.1.deb -O /appflowy.deb
 
-FROM debian:trixie AS runtime
+FROM ubuntu:24.04 AS runtime
 
 # Update and install core dependencies
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \ 
   openssl \
   ca-certificates \
+  software-properties-common \
   curl \
   wget \
   sudo \
@@ -142,27 +121,21 @@ RUN apt-get update -y \
   pm-utils \
   python-is-python3 \
   unzip \
-  postgresql-common
+  postgresql-common \
+  postgresql-16-pgvector
 
 RUN update-ca-certificates
 
 RUN install -d /usr/share/postgresql-common/pgdg
 RUN curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
 ENV VERSION_CODENAME=trixie
-RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
-RUN apt update -y && apt install -y postgresql-16-pgvector postgresql-16
-
-# copy dinit
-COPY --from=cpp_builder /usr/sbin/dinit /usr/local/bin/dinit
+# RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
+# RUN apt update -y && apt install -y postgresql-16-pgvector postgresql-16
 
 # install chromium
-# RUN add-apt-repository ppa:xtradeb/apps
-RUN apt-get install -y chromium
+RUN add-apt-repository ppa:xtradeb/apps -y
+RUN apt-get update && apt-get install -y chromium
 RUN echo "export CHROMIUM_FLAGS=\"$CHROMIUM_FLAGS --no-sandbox\"" >> /etc/chromium.d/default-flags
-
-
-# create user ubuntu
-RUN adduser ubuntu
 
 # install appflowy + appflowy-extractor
 COPY --from=downloads_cache /appflowy.deb /appflowy.deb
@@ -357,4 +330,3 @@ WORKDIR /
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
 RUN mkdir -p /var/log/dinit && chmod 755 /var/log/dinit
-CMD ["dinit", "--container", "-d", "/etc/dinit.d/"]
